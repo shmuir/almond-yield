@@ -1,0 +1,35 @@
+---
+title: "Almond Yield Assignment"
+author: "Sam Muir & Melissa Widas"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Conceptual Model
+
+![](IMG_3958.jpg){width="501"}
+
+# Applying our function
+
+## load packages and function
+
+```{r}
+library(tidyverse)
+source("R/almond_yield_anomaly.R")
+```
+
+## read in climate data
+
+```{r}
+clim <- read.table("data/clim.txt", header = TRUE)
+```
+
+## use function on climate data
+
+```{r}
+almond_yield_anomaly(clim)
+```
