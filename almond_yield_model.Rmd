@@ -11,13 +11,13 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 # Conceptual Model
 
-![](IMG_3958.jpg){width="501"}
+![](IMG_3959.jpg)
 
 # Applying our function
 
 ## load packages and function
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 library(tidyverse)
 source("R/almond_yield_anomaly.R")
 ```

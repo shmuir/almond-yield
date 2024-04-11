@@ -1,0 +1,36 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(purrr)
+
+library(ggpubr)
+
+library(here)
+```
+
+```{r}
+source(here("R", "almond_yield_anomaly.R"))
+almond_yield_anomaly
+
+# read in R formatted data
+clim <- read.table(here("data", "clim.txt"), header = TRUE)
+
+# already in the format required for the model
+head(clim)
+
+# run the model
+# 1944 is a year with less data
+solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W")
+
+# run and save results - but don't plot
+site1 = solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE)
+site1$mean
+site1$annual
+
+# consider a different pv array that only uses 
+# diffuse and has non standard efficiency (0.6)
+site2 = solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE, eff=0.6, etype="direct")
+site2$mean
+```
+
