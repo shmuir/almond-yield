@@ -16,21 +16,78 @@ almond_yield_anomaly
 # read in R formatted data
 clim <- read.table(here("data", "clim.txt"), header = TRUE)
 
-# already in the format required for the model
+source("R/compute_NPV.R")
+source("R/compute_profit_from_almond_yield.R")
+source("R/almond_yield_anomaly.R")
+
+compute_profit_from_almond_yield
+
+almond_yield_anomaly
+
+compute_NPV
+
+# 
 head(clim)
 
-# run the model
-# 1944 is a year with less data
-solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W")
-
-# run and save results - but don't plot
-site1 = solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE)
-site1$mean
-site1$annual
-
-# consider a different pv array that only uses 
-# diffuse and has non standard efficiency (0.6)
-site2 = solarpv(area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE, eff=0.6, etype="direct")
-site2$mean
 ```
+
+
+```{r}
+# use map from purrr
+# notice how map adds the one parameter that is missing from the input list
+eff = rnorm(mean=0.6, sd = 0.1, n=20)
+# .x pulls eff from eff that we piped from
+site2 = eff %>% map(~solarpv( area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE, etype="direct", eff=.x ))
+
+head(site2)
+
+# this is pretty messy - but we can extract a useful data structure,lets say we want 
+# just the annual data (not the mean annual time series), and then reformat as a data frame with nice column names
+tmp = map_df(site2,`[`, c("annual")) 
+
+site2df = data.frame(year = tmp$annual$year, elect= tmp$annual$elect)
+
+# now we could plot
+ggplot(site2df, aes(year,elect, group=year ))+geom_boxplot()+labs(y="Electricity generated in W")
+
+# we also might want an average across parameter uncertainty
+site2_average = site2df %>% group_by(year) %>% dplyr::summarize(elect=mean(elect))
+
+# now add this to the plot - note that we remove the grouping by using group=1
+ggplot(site2df, aes(year,elect, group=year))+geom_boxplot()+labs(y="Electricity in W")+
+  geom_line(data=site2_average, aes(year, elect, group=1), col="orange")
+
+# we could also plot how the mean annual electricity varies with efficiency (eff from above)
+site2[[1]]
+
+tmp = map_df(site2,`[`, c("mean")) 
+
+# how variable is electricity generation (mean over all time) with uncertainty in solar efficiency
+
+site2_mean = data.frame(eff=eff, elect= tmp)
+ggplot(site2_mean, aes(y=mean))+geom_boxplot()+
+  labs(x="Electricity in W")
+
+# or to see what the sensitivity looks like
+ggplot(site2_mean, aes(eff, mean))+geom_point()+
+  labs(y="Electricity in W", x="Solar Efficiency")
+```
+
+
+
+
+
+
+
+```{r}
+profit_almond_yield = compute_profit_from_almond_yield(yield = annual_elect$elect,
+                                        year=clim$year,
+                                        price=4000, discount=0.04)
+
+head(profit_solar)
+
+ggplot(profit_solar, aes(as.factor(year), netpre, group=year))+geom_boxplot()+
+  labs(y="Profit in current $", x="Year")
+```
+
 
