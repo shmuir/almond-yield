@@ -1,3 +1,13 @@
+#' Compute Profit from Almond Yield
+#'
+#' @param price price of almonds in ton/acre, default = $4,063
+#' @param yield yield of almonds in tons / acre, default = 0.9 tons / acre
+#' @param discount rate, default = 0.12
+#' @param cost cost of growing almonds in dollars / ton / acre, default = $4000
+#' @param acres acres being used for almond growing, default = 50 acres
+#'
+#' @return data frame with estimate of profit from almonds
+
 compute_profit_from_almond_yield = function(price = 4063, yield = 0.9, discount = 0.12, cost = 4000, acres = 50){
   
   # generate a unique identifier or scenario number
