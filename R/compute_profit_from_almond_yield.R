@@ -1,22 +1,22 @@
-compute_profit_from_almond_yield = function(price, year, yield, discount){
-  
-  # make sure values are reasonable
-  if (length(yield) < 1)
-    return(NA)
-  
-  # energy cannot be negative
-  if (min(yield ) < 0)
-    return(NA)
+compute_profit_from_almond_yield = function(price = 4063, yield = 0.9, discount = 0.12, cost = 4000, acres = 50){
   
   # generate a unique identifier or scenario number
   scen = seq(from=1, to=length(yield))
-  yearprofit = data.frame(scen=scen, yield=yield, year=year)
-  yearprofit$net =  yearprofit$yield*price
+  
+  # run almond_yield_anomaly function and check output
+  yield_anomaly <- almond_yield_anomaly(clim)
+    
+  yearprofit = data.frame(scen=scen,
+                          yield=yield,
+                          year=yield_anomaly$year,
+                          yield_anomaly = yield_anomaly$yield_anomaly)
+  
+  yearprofit$net = ((yearprofit$yield+yearprofit$yield_anomaly)*price - cost)*acres
   
   # note how discount is passed through to this function
   # remember to normalize the year to start year e.g the first year
-  yearprofit= yearprofit %>% 
+  yearprofit = yearprofit %>% 
     mutate(netpre = compute_NPV(value=net, time=year-year[1], discount=discount ))
   
-  return(yearprofit)
+  return(list(annual_profit=yearprofit[,c("year", "net")], mean=mean(yearprofit$net)))
 }

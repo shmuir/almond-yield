@@ -10,84 +10,116 @@ library(here)
 ```
 
 ```{r}
-source(here("R", "almond_yield_anomaly.R"))
-almond_yield_anomaly
-
 # read in R formatted data
 clim <- read.table(here("data", "clim.txt"), header = TRUE)
 
+# load in almond_yield_anomaly function
+source(here("R", "almond_yield_anomaly.R"))
+
+# load in net profit function
 source("R/compute_NPV.R")
+
+# run almond_yield_anomaly function and check output
+almond_yield_anomaly(clim)
+
+# run compute profit from almond yield function and check output
 source("R/compute_profit_from_almond_yield.R")
-source("R/almond_yield_anomaly.R")
-
-compute_profit_from_almond_yield
-
-almond_yield_anomaly
-
-compute_NPV
-
-# 
-head(clim)
-
+profit <- compute_profit_from_almond_yield()
 ```
 
+We are going to vary the parameters price and yield. Almonds could become more or less expensive to grow based on environmental factors. Yields will vary year to year tons/acre due to location and environmental factors.
+
+Vary on price
+```{r}
+# use map from purrr
+# notice how map adds the one parameter that is missing from the input list
+price = rnorm(mean=4063, sd = 100, n=20)
+# .x pulls price from price that we piped from
+profit_dist = price %>% map(~compute_profit_from_almond_yield(price=.x))
+
+head(profit_dist)
+
+# this is pretty messy - but we can extract a useful data structure,lets say we want 
+# just the annual data (not the mean annual time series), and then reformat as a data frame with nice column names
+tmp = map_df(profit_dist,`[`, c("annual_profit")) 
+
+profit_dist_df = data.frame(year = tmp$annual_profit$year, net= tmp$annual_profit$net)
+
+# now we could plot
+ggplot(profit_dist_df, aes(year,net, group=year ))+geom_boxplot()+labs(y="Net Profit in dollars")
+
+# we also might want an average across parameter uncertainty
+profit_dist_average = profit_dist_df %>% group_by(year) %>% dplyr::summarize(mean_net=mean(net))
+
+# now add this to the plot - note that we remove the grouping by using group=1
+ggplot(profit_dist_df, aes(year, net, group=year))+geom_boxplot()+labs(y= "Net Profit in dollars")+
+  geom_line(data=profit_dist_average, aes(year, mean_net, group=1), col="orange")
+
+tmp = map_df(profit_dist,`[`, c("mean")) 
+
+# how variable is electricity generation (mean over all time) with uncertainty in solar efficiency
+
+profit_dist_mean = data.frame(price=price, net = tmp)
+ggplot(profit_dist_mean, aes(y=mean))+geom_boxplot()+
+  labs(x="Net Profit in Dollars")
+
+# or to see what the sensitivity looks like
+ggplot(profit_dist_mean, aes(price, mean))+geom_point()+
+  labs(y="Net Profit in Dollars", x="Almond Production Price")
+```
+
+Vary on yield
 
 ```{r}
 # use map from purrr
 # notice how map adds the one parameter that is missing from the input list
-eff = rnorm(mean=0.6, sd = 0.1, n=20)
-# .x pulls eff from eff that we piped from
-site2 = eff %>% map(~solarpv( area=0.1, solar=sierraczosolar, clr="green", eunit="W", g=FALSE, etype="direct", eff=.x ))
+yield = rnorm(mean=0.9, sd = 0.1, n=20)
+# .x pulls price from price that we piped from
+yield_dist = yield %>% map(~compute_profit_from_almond_yield(yield=.x))
 
-head(site2)
+head(yield_dist)
 
 # this is pretty messy - but we can extract a useful data structure,lets say we want 
 # just the annual data (not the mean annual time series), and then reformat as a data frame with nice column names
-tmp = map_df(site2,`[`, c("annual")) 
+tmp_yield = map_df(yield_dist,`[`, c("annual_profit")) 
 
-site2df = data.frame(year = tmp$annual$year, elect= tmp$annual$elect)
+yield_dist_df = data.frame(year = tmp_yield$annual_profit$year, net= tmp_yield$annual_profit$net)
 
 # now we could plot
-ggplot(site2df, aes(year,elect, group=year ))+geom_boxplot()+labs(y="Electricity generated in W")
+ggplot(yield_dist_df, aes(year, net, group=year ))+geom_boxplot()+labs(y="Net Profit in dollars")
 
 # we also might want an average across parameter uncertainty
-site2_average = site2df %>% group_by(year) %>% dplyr::summarize(elect=mean(elect))
+yield_dist_average = yield_dist_df %>% group_by(year) %>% dplyr::summarize(mean_net=mean(net))
 
 # now add this to the plot - note that we remove the grouping by using group=1
-ggplot(site2df, aes(year,elect, group=year))+geom_boxplot()+labs(y="Electricity in W")+
-  geom_line(data=site2_average, aes(year, elect, group=1), col="orange")
+ggplot(yield_dist_df, aes(year, net, group=year))+geom_boxplot()+labs(y= "Net Profit in dollars")+
+  geom_line(data=yield_dist_average, aes(year, mean_net, group=1), col="orange")
 
-# we could also plot how the mean annual electricity varies with efficiency (eff from above)
-site2[[1]]
-
-tmp = map_df(site2,`[`, c("mean")) 
+yield_tmp = map_df(profit_dist,`[`, c("mean")) 
 
 # how variable is electricity generation (mean over all time) with uncertainty in solar efficiency
 
-site2_mean = data.frame(eff=eff, elect= tmp)
-ggplot(site2_mean, aes(y=mean))+geom_boxplot()+
-  labs(x="Electricity in W")
+yield_dist_mean = data.frame(yield=yield, net = yield_tmp)
+ggplot(yield_dist_mean, aes(y=mean))+geom_boxplot()+
+  labs(x="Net Profit in Dollars")
 
 # or to see what the sensitivity looks like
-ggplot(site2_mean, aes(eff, mean))+geom_point()+
-  labs(y="Electricity in W", x="Solar Efficiency")
+ggplot(yield_dist_mean, aes(yield, mean))+geom_point()+
+  labs(y="Net Profit in Dollars", x="Almond Yield in tons/acre")
 ```
 
-
-
-
-
-
+Our two final graphics that we will examine are the following:
 
 ```{r}
-profit_almond_yield = compute_profit_from_almond_yield(yield = annual_elect$elect,
-                                        year=clim$year,
-                                        price=4000, discount=0.04)
-
-head(profit_solar)
-
-ggplot(profit_solar, aes(as.factor(year), netpre, group=year))+geom_boxplot()+
-  labs(y="Profit in current $", x="Year")
+ggplot(profit_dist_df, aes(year, net, group=year))+geom_boxplot()+labs(y= "Net Profit in dollars")+
+  geom_line(data=profit_dist_average, aes(year, mean_net, group=1), col="orange")
 ```
 
+```{r}
+ggplot(yield_dist_mean, aes(yield, mean))+geom_point()+
+  labs(y="Net Profit in Dollars", x="Almond Yield in tons/acre")
+```
 
+Takeaways:
+
+The net profit is very sensitive to the price of almonds per ton. This would make sense as price should be directly related to profit, as the price of almonds increases we would expect there to be an increase in net profit which would suggest a possible positive linear relationship. The net profit does not appear to be very sensitive to yield in tons per acre. We see a slight positive relationship between net profit and almond yield in tons per acre, but it is not stronly correlated. We might see a larger difference if we had set yields to have a more drastic standard deviation.
